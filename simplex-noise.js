@@ -70,6 +70,11 @@ function SimplexNoise(random) {
                     - 1, 1, 0, 1, - 1, 1, 0, - 1, - 1, - 1, 0, 1, - 1, - 1, 0, - 1,
                     1, 1, 1, 0, 1, 1, - 1, 0, 1, - 1, 1, 0, 1, - 1, - 1, 0,
                     - 1, 1, 1, 0, - 1, 1, - 1, 0, - 1, - 1, 1, 0, - 1, - 1, - 1, 0]);
+
+    var stdlib = (typeof window !== 'undefined') ? window : global;
+    this._asmLinked = this._asm(stdlib, stdlib, this.heap);
+
+    this.noise2D = this._asmLinked.noise2D;
 }
 
 SimplexNoise.prototype = {
@@ -151,11 +156,6 @@ SimplexNoise.prototype = {
         return {
             noise2D: noise2D
         };
-    },
-
-    noise2D: function (xin, yin) {
-        var stdlib = (typeof window !== 'undefined') ? window : global;
-        return this._asm(stdlib, stdlib, this.heap).noise2D(xin, yin);
     },
 
     // 3D simplex noise
