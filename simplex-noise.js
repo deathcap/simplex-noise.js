@@ -73,10 +73,21 @@ function SimplexNoise(random) {
 }
 
 SimplexNoise.prototype = {
-    noise2D: function (xin, yin) {
-        var permMod12 = this.permMod12,
-            perm = this.perm,
-            grad3 = this.grad3;
+    _asm: function(stdlib, foreign, heap) {
+        //'use asm';
+
+        var perm = new stdlib.Uint8Array(heap, 256, 512);
+        var permMod12 = new stdlib.Uint8Array(heap, 256 + 512, 512);
+        var grad3 = new stdlib.Float32Array(heap, 256 + 512 + 512, 36);
+
+        var sqrt = stdlib.Math.sqrt;
+        var floor = stdlib.Math.floor;
+        var imul = stdlib.Math.imul;
+
+    function noise2D(xin, yin) {
+        xin = +xin;
+        yin = +yin;
+
         var n0=0, n1=0, n2=0; // Noise contributions from the three corners
         var F2 = 0.0, G2 = 0.0, s = 0.0, x0 = 0.0, y0 = 0.0, x1 = 0.0, y1 = 0.0, x2 = 0.0, y2 = 0.0, t = 0.0, t0 = 0.0, t1 = 0.0, t2 = 0.0, X0 = 0.0, Y0 = 0.0;
         var i = 0, j = 0, i1 = 0, j1 = 0, ii = 0, jj = 0, gi0 = 0, gi1 = 0, gi2 = 0;
@@ -134,7 +145,18 @@ SimplexNoise.prototype = {
         // Add contributions from each corner to get the final noise value.
         // The result is scaled to return values in the interval [-1,1].
         return 70.0 * (n0 + n1 + n2);
+    };
+
+        return {
+            noise2D: noise2D
+        };
     },
+
+    noise2D: function (xin, yin) {
+        var stdlib = (typeof window !== 'undefined') ? window : global;
+        return this._asm(stdlib, stdlib, this.heap).noise2D(xin, yin);
+    },
+
     // 3D simplex noise
     noise3D: function (xin, yin, zin) {
         var permMod12 = this.permMod12,
