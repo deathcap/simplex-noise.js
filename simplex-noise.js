@@ -94,12 +94,12 @@ SimplexNoise.prototype = {
         // Skew the input space to determine which simplex cell we're in
         F2 = 0.5 * (+Math.sqrt(3.0) - 1.0);
         G2 = (3.0 - +Math.sqrt(3.0)) / 6.0;
-        s = (xin + yin) * F2; // Hairy factor for 2D
-        i = Math.floor(xin + s);
-        j = Math.floor(yin + s);
-        t = (i + j) * G2;
-        X0 = i - t; // Unskew the cell origin back to (x,y) space
-        Y0 = j - t;
+        s = 0.0; s = (xin + yin) * F2; // Hairy factor for 2D
+        i = ~~+floor(xin + s);
+        j = ~~+floor(yin + s);
+        t = +~~(i + j) * G2;
+        X0 = +~~i - t; // Unskew the cell origin back to (x,y) space
+        Y0 = +~~j - t;
         x0 = xin - X0; // The x,y distances from the cell origin
         y0 = yin - Y0;
         // For the 2D case, the simplex shape is an equilateral triangle.
@@ -116,13 +116,13 @@ SimplexNoise.prototype = {
         // A step of (1,0) in (i,j) means a step of (1-c,-c) in (x,y), and
         // a step of (0,1) in (i,j) means a step of (-c,1-c) in (x,y), where
         // c = (3-sqrt(3))/6
-        x1 = x0 - i1 + G2; // Offsets for middle corner in (x,y) unskewed coords
-        y1 = y0 - j1 + G2;
+        x1 = x0 - +~~i1 + G2; // Offsets for middle corner in (x,y) unskewed coords
+        y1 = y0 - +~~j1 + G2;
         x2 = x0 - 1.0 + 2.0 * G2; // Offsets for last corner in (x,y) unskewed coords
         y2 = y0 - 1.0 + 2.0 * G2;
         // Work out the hashed gradient indices of the three simplex corners
-        ii = i & 255;
-        jj = j & 255;
+        ii = (i & 255)|0;
+        jj = (j & 255)|0;
         // Calculate the contribution from the three corners
         t0 = 0.5 - x0 * x0 - y0 * y0;
         if (t0 >= 0.0) {
@@ -144,7 +144,7 @@ SimplexNoise.prototype = {
         }
         // Add contributions from each corner to get the final noise value.
         // The result is scaled to return values in the interval [-1,1].
-        return 70.0 * (n0 + n1 + n2);
+        return +(70.0 * (n0 + n1 + n2));
     };
 
         return {
