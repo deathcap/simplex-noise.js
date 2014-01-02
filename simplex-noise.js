@@ -41,9 +41,10 @@ var F2 = 0.5 * (Math.sqrt(3.0) - 1.0),
 
 function SimplexNoise(random) {
     if (!random) random = Math.random;
-    this.p = new Uint8Array(256);
-    this.perm = new Uint8Array(512);
-    this.permMod12 = new Uint8Array(512);
+    this.heap = new ArrayBuffer(256 + 512 + 512 + (36 * 4) + (128 * 4));
+    this.p = new Uint8Array(this.heap, 0, 256);
+    this.perm = new Uint8Array(this.heap, 256, 512);
+    this.permMod12 = new Uint8Array(this.heap, 256 + 512, 512);
     for (var i = 0; i < 256; i++) {
         this.p[i] = random() * 256;
     }
@@ -51,7 +52,7 @@ function SimplexNoise(random) {
         this.perm[i] = this.p[i & 255];
         this.permMod12[i] = this.perm[i] % 12;
     }
-    this.grad3 = new Float32Array(36);
+    this.grad3 = new Float32Array(this.heap, 256 + 512 + 512, 36);
     this.grad3.set([1, 1, 0,
                     - 1, 1, 0,
                     1, - 1, 0,
@@ -67,7 +68,7 @@ function SimplexNoise(random) {
                     0, - 1, 1,
                     0, 1, - 1,
                     0, - 1, - 1]);
-    this.grad4 = new Float32Array(128);
+    this.grad4 = new Float32Array(this.heap, 256 + 512 + 512 + (36 * 4), 128);
     this.grad4.set([0, 1, 1, 1, 0, 1, 1, - 1, 0, 1, - 1, 1, 0, 1, - 1, - 1,
                     0, - 1, 1, 1, 0, - 1, 1, - 1, 0, - 1, - 1, 1, 0, - 1, - 1, - 1,
                     1, 0, 1, 1, 1, 0, 1, - 1, 1, 0, - 1, 1, 1, 0, - 1, - 1,
@@ -77,6 +78,7 @@ function SimplexNoise(random) {
                     1, 1, 1, 0, 1, 1, - 1, 0, 1, - 1, 1, 0, 1, - 1, - 1, 0,
                     - 1, 1, 1, 0, - 1, 1, - 1, 0, - 1, - 1, 1, 0, - 1, - 1, - 1, 0]);
 }
+
 SimplexNoise.prototype = {
     noise2D: function (xin, yin) {
         var permMod12 = this.permMod12,
