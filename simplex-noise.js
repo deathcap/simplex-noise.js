@@ -81,13 +81,25 @@ SimplexNoise.prototype = {
     _asm: function(stdlib, foreign, heap) {
         //'use asm';
 
+        /* fails: TypeError: asm.js type error: array view constructor takes exactly one argument
+        var p = new stdlib.Uint8Array(heap, 0, 256);
         var perm = new stdlib.Uint8Array(heap, 256, 512);
         var permMod12 = new stdlib.Uint8Array(heap, 256 + 512, 512);
         var grad3 = new stdlib.Float32Array(heap, 256 + 512 + 512, 36);
+        var grad4 = new stdlib.Float32Array(heap, 256 + 512 + 512 + (36 * 4), 128);
+        */
+
+        var bytes = new stdlib.Uint8Array(heap);
+        var _perm = 256;
+        var _permMod12 = 768; // 256 + 512;
+
+        var floats = new stdlib.Float32Array(heap);
+        var _grad3 = 320; // (256 + 512 + 512) / Float32Array.BYTES_PER_ELEMENT
+        var _grad4 = 356; // 320 + 36
 
         var sqrt = stdlib.Math.sqrt;
         var floor = stdlib.Math.floor;
-        var imul = stdlib.Math.imul;
+        var imul = stdlib.Math.imul; // Chrome has this, but not Node (v0.10.21)
 
     function noise2D(xin, yin) {
         xin = +xin;
@@ -132,21 +144,21 @@ SimplexNoise.prototype = {
         // Calculate the contribution from the three corners
         t0 = 0.5 - x0 * x0 - y0 * y0;
         if (t0 >= 0.0) {
-            gi0 = (permMod12[ii + perm[jj]|0]|0) * 3;
+            gi0 = (bytes[_permMod12 + ii + bytes[_perm + jj]|0]|0) * 3;
             t0 = t0 * t0;
-            n0 = t0 * t0 * (+grad3[gi0] * x0 + +grad3[gi0 + 1] * y0); // (x,y) of grad3 used for 2D gradient
+            n0 = t0 * t0 * (+floats[_grad3 + gi0] * x0 + +floats[_grad3 + gi0 + 1] * y0); // (x,y) of grad3 used for 2D gradient
         }
         t1 = 0.5 - x1 * x1 - y1 * y1;
         if (t1 >= 0.0) {
-            gi1 = (permMod12[ii + i1 + perm[jj + j1]|0]|0) * 3;
+            gi1 = (bytes[_permMod12 + ii + i1 + bytes[_perm + jj + j1]|0]|0) * 3;
             t1 = t1 * t1;
-            n1 = t1 * t1 * (+grad3[gi1] * x1 + +grad3[gi1 + 1] * y1);
+            n1 = t1 * t1 * (+floats[_grad3 + gi1] * x1 + +floats[_grad3 + gi1 + 1] * y1);
         }
         t2 = 0.5 - x2 * x2 - y2 * y2;
         if (t2 >= 0.0) {
-            gi2 = permMod12[ii + 1 + perm[jj + 1]|0] * 3;
+            gi2 = bytes[_permMod12 + ii + 1 + bytes[_perm + jj + 1]|0] * 3;
             t2 = t2 * t2;
-            n2 = t2 * t2 * (+grad3[gi2] * x2 + +grad3[gi2 + 1] * y2);
+            n2 = t2 * t2 * (+floats[_grad3 + gi2] * x2 + +floats[_grad3 + gi2 + 1] * y2);
         }
         // Add contributions from each corner to get the final noise value.
         // The result is scaled to return values in the interval [-1,1].
