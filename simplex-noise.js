@@ -31,19 +31,13 @@
  */
 (function () {
 
-var F2 = 0.5 * (Math.sqrt(3.0) - 1.0),
-    G2 = (3.0 - Math.sqrt(3.0)) / 6.0,
-    F3 = 1.0 / 3.0,
-    G3 = 1.0 / 6.0,
-    F4 = (Math.sqrt(5.0) - 1.0) / 4.0,
-    G4 = (5.0 - Math.sqrt(5.0)) / 20.0;
-
 
 function SimplexNoise(random) {
     if (!random) random = Math.random;
-    this.p = new Uint8Array(256);
-    this.perm = new Uint8Array(512);
-    this.permMod12 = new Uint8Array(512);
+    this.heap = new ArrayBuffer(0x1000); //> 256 + 512 + 512 + (36 * 4) + (128 * 4));
+    this.p = new Uint8Array(this.heap, 0, 256);
+    this.perm = new Uint8Array(this.heap, 256, 512);
+    this.permMod12 = new Uint8Array(this.heap, 256 + 512, 512);
     for (var i = 0; i < 256; i++) {
         this.p[i] = random() * 256;
     }
@@ -51,49 +45,84 @@ function SimplexNoise(random) {
         this.perm[i] = this.p[i & 255];
         this.permMod12[i] = this.perm[i] % 12;
     }
+    this.grad3 = new Float32Array(this.heap, 256 + 512 + 512, 36);
+    this.grad3.set([1, 1, 0,
+                    - 1, 1, 0,
+                    1, - 1, 0,
 
+                    - 1, - 1, 0,
+                    1, 0, 1,
+                    - 1, 0, 1,
+
+                    1, 0, - 1,
+                    - 1, 0, - 1,
+                    0, 1, 1,
+
+                    0, - 1, 1,
+                    0, 1, - 1,
+                    0, - 1, - 1]);
+    this.grad4 = new Float32Array(this.heap, 256 + 512 + 512 + (36 * 4), 128);
+    this.grad4.set([0, 1, 1, 1, 0, 1, 1, - 1, 0, 1, - 1, 1, 0, 1, - 1, - 1,
+                    0, - 1, 1, 1, 0, - 1, 1, - 1, 0, - 1, - 1, 1, 0, - 1, - 1, - 1,
+                    1, 0, 1, 1, 1, 0, 1, - 1, 1, 0, - 1, 1, 1, 0, - 1, - 1,
+                    - 1, 0, 1, 1, - 1, 0, 1, - 1, - 1, 0, - 1, 1, - 1, 0, - 1, - 1,
+                    1, 1, 0, 1, 1, 1, 0, - 1, 1, - 1, 0, 1, 1, - 1, 0, - 1,
+                    - 1, 1, 0, 1, - 1, 1, 0, - 1, - 1, - 1, 0, 1, - 1, - 1, 0, - 1,
+                    1, 1, 1, 0, 1, 1, - 1, 0, 1, - 1, 1, 0, 1, - 1, - 1, 0,
+                    - 1, 1, 1, 0, - 1, 1, - 1, 0, - 1, - 1, 1, 0, - 1, - 1, - 1, 0]);
+
+    var stdlib = (typeof window !== 'undefined') ? window : global;
+    this._asmLinked = this._asm(stdlib, stdlib, this.heap);
+
+    this.noise2D = this._asmLinked.noise2D;
 }
+
 SimplexNoise.prototype = {
-    grad3: new Float32Array([1, 1, 0,
-                            - 1, 1, 0,
-                            1, - 1, 0,
+    _asm: function(stdlib, foreign, heap) {
+        'use asm';
 
-                            - 1, - 1, 0,
-                            1, 0, 1,
-                            - 1, 0, 1,
+        /* fails: TypeError: asm.js type error: array view constructor takes exactly one argument
+        var p = new stdlib.Uint8Array(heap, 0, 256);
+        var perm = new stdlib.Uint8Array(heap, 256, 512);
+        var permMod12 = new stdlib.Uint8Array(heap, 256 + 512, 512);
+        var grad3 = new stdlib.Float32Array(heap, 256 + 512 + 512, 36);
+        var grad4 = new stdlib.Float32Array(heap, 256 + 512 + 512 + (36 * 4), 128);
+        */
 
-                            1, 0, - 1,
-                            - 1, 0, - 1,
-                            0, 1, 1,
+        var bytes = new stdlib.Uint8Array(heap);
+        var _perm = 256;
+        var _permMod12 = 768; // 256 + 512;
 
-                            0, - 1, 1,
-                            0, 1, - 1,
-                            0, - 1, - 1]),
-    grad4: new Float32Array([0, 1, 1, 1, 0, 1, 1, - 1, 0, 1, - 1, 1, 0, 1, - 1, - 1,
-                            0, - 1, 1, 1, 0, - 1, 1, - 1, 0, - 1, - 1, 1, 0, - 1, - 1, - 1,
-                            1, 0, 1, 1, 1, 0, 1, - 1, 1, 0, - 1, 1, 1, 0, - 1, - 1,
-                            - 1, 0, 1, 1, - 1, 0, 1, - 1, - 1, 0, - 1, 1, - 1, 0, - 1, - 1,
-                            1, 1, 0, 1, 1, 1, 0, - 1, 1, - 1, 0, 1, 1, - 1, 0, - 1,
-                            - 1, 1, 0, 1, - 1, 1, 0, - 1, - 1, - 1, 0, 1, - 1, - 1, 0, - 1,
-                            1, 1, 1, 0, 1, 1, - 1, 0, 1, - 1, 1, 0, 1, - 1, - 1, 0,
-                            - 1, 1, 1, 0, - 1, 1, - 1, 0, - 1, - 1, 1, 0, - 1, - 1, - 1, 0]),
-    noise2D: function (xin, yin) {
-        var permMod12 = this.permMod12,
-            perm = this.perm,
-            grad3 = this.grad3;
-        var n0=0, n1=0, n2=0; // Noise contributions from the three corners
+        var floats = new stdlib.Float32Array(heap);
+        var _grad3 = 320; // (256 + 512 + 512) / Float32Array.BYTES_PER_ELEMENT
+        var _grad4 = 356; // 320 + 36
+
+        var sqrt = stdlib.Math.sqrt;
+        var floor = stdlib.Math.floor;
+        var imul = stdlib.Math.imul; // Chrome has this, but not Node (v0.10.21)
+
+    function noise2D(xin, yin) {
+        xin = +xin;
+        yin = +yin;
+
+        var n0=0.0, n1=0.0, n2=0.0; // Noise contributions from the three corners
+        var F2 = 0.0, G2 = 0.0, s = 0.0, x0 = 0.0, y0 = 0.0, x1 = 0.0, y1 = 0.0, x2 = 0.0, y2 = 0.0, t = 0.0, t0 = 0.0, t1 = 0.0, t2 = 0.0, X0 = 0.0, Y0 = 0.0;
+        var i = 0, j = 0, i1 = 0, j1 = 0, ii = 0, jj = 0, gi0 = 0, gi1 = 0, gi2 = 0;
+
         // Skew the input space to determine which simplex cell we're in
-        var s = (xin + yin) * F2; // Hairy factor for 2D
-        var i = Math.floor(xin + s);
-        var j = Math.floor(yin + s);
-        var t = (i + j) * G2;
-        var X0 = i - t; // Unskew the cell origin back to (x,y) space
-        var Y0 = j - t;
-        var x0 = xin - X0; // The x,y distances from the cell origin
-        var y0 = yin - Y0;
+        F2 = 0.5 * (+sqrt(3.0) - 1.0);
+        G2 = (3.0 - +sqrt(3.0)) / 6.0;
+        s = 0.0; s = (xin + yin) * F2; // Hairy factor for 2D
+        i = ~~+floor(xin + s);
+        j = ~~+floor(yin + s);
+        t = +~~(i + j) * G2;
+        X0 = +~~i - t; // Unskew the cell origin back to (x,y) space
+        Y0 = +~~j - t;
+        x0 = xin - X0; // The x,y distances from the cell origin
+        y0 = yin - Y0;
         // For the 2D case, the simplex shape is an equilateral triangle.
         // Determine which simplex we are in.
-        var i1, j1; // Offsets for second (middle) corner of simplex in (i,j) coords
+        //i1, j1; // Offsets for second (middle) corner of simplex in (i,j) coords
         if (x0 > y0) {
             i1 = 1;
             j1 = 0;
@@ -105,47 +134,58 @@ SimplexNoise.prototype = {
         // A step of (1,0) in (i,j) means a step of (1-c,-c) in (x,y), and
         // a step of (0,1) in (i,j) means a step of (-c,1-c) in (x,y), where
         // c = (3-sqrt(3))/6
-        var x1 = x0 - i1 + G2; // Offsets for middle corner in (x,y) unskewed coords
-        var y1 = y0 - j1 + G2;
-        var x2 = x0 - 1.0 + 2.0 * G2; // Offsets for last corner in (x,y) unskewed coords
-        var y2 = y0 - 1.0 + 2.0 * G2;
+        x1 = x0 - +~~i1 + G2; // Offsets for middle corner in (x,y) unskewed coords
+        y1 = y0 - +~~j1 + G2;
+        x2 = x0 - 1.0 + 2.0 * G2; // Offsets for last corner in (x,y) unskewed coords
+        y2 = y0 - 1.0 + 2.0 * G2;
         // Work out the hashed gradient indices of the three simplex corners
-        var ii = i & 255;
-        var jj = j & 255;
+        ii = (i & 255)|0;
+        jj = (j & 255)|0;
         // Calculate the contribution from the three corners
-        var t0 = 0.5 - x0 * x0 - y0 * y0;
-        if (t0 >= 0) {
-            var gi0 = permMod12[ii + perm[jj]] * 3;
-            t0 *= t0;
-            n0 = t0 * t0 * (grad3[gi0] * x0 + grad3[gi0 + 1] * y0); // (x,y) of grad3 used for 2D gradient
+        t0 = 0.5 - x0 * x0 - y0 * y0;
+        if (t0 >= 0.0) {
+            gi0 = (bytes[(_permMod12 + ii + ((bytes[(_perm + jj)|0])|0)|0)|0]|0);
+            gi0 = (gi0 + gi0 + gi0) | 0;
+            t0 = t0 * t0;
+            n0 = t0 * t0 * (+floats[(_grad3 + gi0) << 2 >> 2] * x0 + +floats[(_grad3 + gi0 + 1) << 2 >> 2] * y0); // (x,y) of grad3 used for 2D gradient
         }
-        var t1 = 0.5 - x1 * x1 - y1 * y1;
-        if (t1 >= 0) {
-            var gi1 = permMod12[ii + i1 + perm[jj + j1]] * 3;
-            t1 *= t1;
-            n1 = t1 * t1 * (grad3[gi1] * x1 + grad3[gi1 + 1] * y1);
+        t1 = 0.5 - x1 * x1 - y1 * y1;
+        if (t1 >= 0.0) {
+            gi1 = (bytes[(_permMod12 + ii + i1 + ((bytes[(_perm + jj + j1)|0])|0)|0)|0]|0);
+            gi1 = (gi1 + gi1 + gi1) | 0;
+            t1 = t1 * t1;
+            n1 = t1 * t1 * (+floats[(_grad3 + gi1) << 2 >> 2] * x1 + +floats[(_grad3 + gi1 + 1) << 2 >> 2] * y1);
         }
-        var t2 = 0.5 - x2 * x2 - y2 * y2;
-        if (t2 >= 0) {
-            var gi2 = permMod12[ii + 1 + perm[jj + 1]] * 3;
-            t2 *= t2;
-            n2 = t2 * t2 * (grad3[gi2] * x2 + grad3[gi2 + 1] * y2);
+        t2 = 0.5 - x2 * x2 - y2 * y2;
+        if (t2 >= 0.0) {
+            gi2 = bytes[(_permMod12 + ii + 1 + ((bytes[(_perm + jj + 1)|0])|0)|0)|0]|0;
+            gi2 = (gi2 + gi2 + gi2) | 0;
+            t2 = t2 * t2;
+            n2 = t2 * t2 * (+floats[(_grad3 + gi2) << 2 >> 2] * x2 + +floats[(_grad3 + gi2 + 1) << 2 >> 2] * y2);
         }
         // Add contributions from each corner to get the final noise value.
         // The result is scaled to return values in the interval [-1,1].
-        return 70.0 * (n0 + n1 + n2);
+        return +(70.0 * (n0 + n1 + n2));
+    };
+
+        return {
+            noise2D: noise2D
+        };
     },
+
     // 3D simplex noise
     noise3D: function (xin, yin, zin) {
         var permMod12 = this.permMod12,
             perm = this.perm,
             grad3 = this.grad3;
-        var n0, n1, n2, n3; // Noise contributions from the four corners
+        var n0 = 0.0, n1 = 0.0, n2 = 0.0, n3 = 0.0; // Noise contributions from the four corners
         // Skew the input space to determine which simplex cell we're in
+        var F3 = 0.0; F3 = 1.0 / 3.0;
         var s = (xin + yin + zin) * F3; // Very nice and simple skew factor for 3D
         var i = Math.floor(xin + s);
         var j = Math.floor(yin + s);
         var k = Math.floor(zin + s);
+        var G3 = 0.0; G3 = 1.0 / 6.0;
         var t = (i + j + k) * G3;
         var X0 = i - t; // Unskew the cell origin back to (x,y,z) space
         var Y0 = j - t;
@@ -231,28 +271,28 @@ SimplexNoise.prototype = {
         if (t0 < 0) n0 = 0.0;
         else {
             var gi0 = permMod12[ii + perm[jj + perm[kk]]] * 3;
-            t0 *= t0;
+            t0 = t0 * t0;
             n0 = t0 * t0 * (grad3[gi0] * x0 + grad3[gi0 + 1] * y0 + grad3[gi0 + 2] * z0);
         }
         var t1 = 0.6 - x1 * x1 - y1 * y1 - z1 * z1;
         if (t1 < 0) n1 = 0.0;
         else {
             var gi1 = permMod12[ii + i1 + perm[jj + j1 + perm[kk + k1]]] * 3;
-            t1 *= t1;
+            t1 = t1 * t1;
             n1 = t1 * t1 * (grad3[gi1] * x1 + grad3[gi1 + 1] * y1 + grad3[gi1 + 2] * z1);
         }
         var t2 = 0.6 - x2 * x2 - y2 * y2 - z2 * z2;
         if (t2 < 0) n2 = 0.0;
         else {
             var gi2 = permMod12[ii + i2 + perm[jj + j2 + perm[kk + k2]]] * 3;
-            t2 *= t2;
+            t2 = t2 * t2;
             n2 = t2 * t2 * (grad3[gi2] * x2 + grad3[gi2 + 1] * y2 + grad3[gi2 + 2] * z2);
         }
         var t3 = 0.6 - x3 * x3 - y3 * y3 - z3 * z3;
         if (t3 < 0) n3 = 0.0;
         else {
             var gi3 = permMod12[ii + 1 + perm[jj + 1 + perm[kk + 1]]] * 3;
-            t3 *= t3;
+            t3 = t3 * t3;
             n3 = t3 * t3 * (grad3[gi3] * x3 + grad3[gi3 + 1] * y3 + grad3[gi3 + 2] * z3);
         }
         // Add contributions from each corner to get the final noise value.
@@ -265,13 +305,15 @@ SimplexNoise.prototype = {
             perm = this.perm,
             grad4 = this.grad4;
 
-        var n0, n1, n2, n3, n4; // Noise contributions from the five corners
+        var n0 = 0.0, n1 = 0.0, n2 = 0.0, n3 = 0.0, n4 = 0.0; // Noise contributions from the five corners
         // Skew the (x,y,z,w) space to determine which cell of 24 simplices we're in
+        var F4 = 0.0; F4 = (Math.sqrt(5.0) - 1.0) / 4.0;
         var s = (x + y + z + w) * F4; // Factor for 4D skewing
         var i = Math.floor(x + s);
         var j = Math.floor(y + s);
         var k = Math.floor(z + s);
         var l = Math.floor(w + s);
+        var G4 = 0.0; G4 = (5.0 - Math.sqrt(5.0)) / 20.0;
         var t = (i + j + k + l) * G4; // Factor for 4D unskewing
         var X0 = i - t; // Unskew the cell origin back to (x,y,z,w) space
         var Y0 = j - t;
@@ -351,35 +393,35 @@ SimplexNoise.prototype = {
         if (t0 < 0) n0 = 0.0;
         else {
             var gi0 = (perm[ii + perm[jj + perm[kk + perm[ll]]]] % 32) * 4;
-            t0 *= t0;
+            t0 = t0 * t0;
             n0 = t0 * t0 * (grad4[gi0] * x0 + grad4[gi0 + 1] * y0 + grad4[gi0 + 2] * z0 + grad4[gi0 + 3] * w0);
         }
         var t1 = 0.6 - x1 * x1 - y1 * y1 - z1 * z1 - w1 * w1;
         if (t1 < 0) n1 = 0.0;
         else {
             var gi1 = (perm[ii + i1 + perm[jj + j1 + perm[kk + k1 + perm[ll + l1]]]] % 32) * 4;
-            t1 *= t1;
+            t1 = t1 * t1;
             n1 = t1 * t1 * (grad4[gi1] * x1 + grad4[gi1 + 1] * y1 + grad4[gi1 + 2] * z1 + grad4[gi1 + 3] * w1);
         }
         var t2 = 0.6 - x2 * x2 - y2 * y2 - z2 * z2 - w2 * w2;
         if (t2 < 0) n2 = 0.0;
         else {
             var gi2 = (perm[ii + i2 + perm[jj + j2 + perm[kk + k2 + perm[ll + l2]]]] % 32) * 4;
-            t2 *= t2;
+            t2 = t2 * t2;
             n2 = t2 * t2 * (grad4[gi2] * x2 + grad4[gi2 + 1] * y2 + grad4[gi2 + 2] * z2 + grad4[gi2 + 3] * w2);
         }
         var t3 = 0.6 - x3 * x3 - y3 * y3 - z3 * z3 - w3 * w3;
         if (t3 < 0) n3 = 0.0;
         else {
             var gi3 = (perm[ii + i3 + perm[jj + j3 + perm[kk + k3 + perm[ll + l3]]]] % 32) * 4;
-            t3 *= t3;
+            t3 = t3 * t3;
             n3 = t3 * t3 * (grad4[gi3] * x3 + grad4[gi3 + 1] * y3 + grad4[gi3 + 2] * z3 + grad4[gi3 + 3] * w3);
         }
         var t4 = 0.6 - x4 * x4 - y4 * y4 - z4 * z4 - w4 * w4;
         if (t4 < 0) n4 = 0.0;
         else {
             var gi4 = (perm[ii + 1 + perm[jj + 1 + perm[kk + 1 + perm[ll + 1]]]] % 32) * 4;
-            t4 *= t4;
+            t4 = t4 * t4;
             n4 = t4 * t4 * (grad4[gi4] * x4 + grad4[gi4 + 1] * y4 + grad4[gi4 + 2] * z4 + grad4[gi4 + 3] * w4);
         }
         // Sum up and scale the result to cover the range [-1,1]
