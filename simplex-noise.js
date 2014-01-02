@@ -31,75 +31,28 @@
  */
 (function () {
 
+function SimplexAsm(stdlib, foreign, heap) {
+    'use asm';
 
-function SimplexNoise(random) {
-    if (!random) random = Math.random;
-    this.heap = new ArrayBuffer(0x1000); //> 256 + 512 + 512 + (36 * 4) + (128 * 4));
-    this.p = new Uint8Array(this.heap, 0, 256);
-    this.perm = new Uint8Array(this.heap, 256, 512);
-    this.permMod12 = new Uint8Array(this.heap, 256 + 512, 512);
-    for (var i = 0; i < 256; i++) {
-        this.p[i] = random() * 256;
-    }
-    for (i = 0; i < 512; i++) {
-        this.perm[i] = this.p[i & 255];
-        this.permMod12[i] = this.perm[i] % 12;
-    }
-    this.grad3 = new Float32Array(this.heap, 256 + 512 + 512, 36);
-    this.grad3.set([1, 1, 0,
-                    - 1, 1, 0,
-                    1, - 1, 0,
+    /* fails: TypeError: asm.js type error: array view constructor takes exactly one argument
+    var p = new stdlib.Uint8Array(heap, 0, 256);
+    var perm = new stdlib.Uint8Array(heap, 256, 512);
+    var permMod12 = new stdlib.Uint8Array(heap, 256 + 512, 512);
+    var grad3 = new stdlib.Float32Array(heap, 256 + 512 + 512, 36);
+    var grad4 = new stdlib.Float32Array(heap, 256 + 512 + 512 + (36 * 4), 128);
+    */
 
-                    - 1, - 1, 0,
-                    1, 0, 1,
-                    - 1, 0, 1,
+    var bytes = new stdlib.Uint8Array(heap);
+    var _perm = 256;
+    var _permMod12 = 768; // 256 + 512;
 
-                    1, 0, - 1,
-                    - 1, 0, - 1,
-                    0, 1, 1,
+    var floats = new stdlib.Float32Array(heap);
+    var _grad3 = 320; // (256 + 512 + 512) / Float32Array.BYTES_PER_ELEMENT
+    var _grad4 = 356; // 320 + 36
 
-                    0, - 1, 1,
-                    0, 1, - 1,
-                    0, - 1, - 1]);
-    this.grad4 = new Float32Array(this.heap, 256 + 512 + 512 + (36 * 4), 128);
-    this.grad4.set([0, 1, 1, 1, 0, 1, 1, - 1, 0, 1, - 1, 1, 0, 1, - 1, - 1,
-                    0, - 1, 1, 1, 0, - 1, 1, - 1, 0, - 1, - 1, 1, 0, - 1, - 1, - 1,
-                    1, 0, 1, 1, 1, 0, 1, - 1, 1, 0, - 1, 1, 1, 0, - 1, - 1,
-                    - 1, 0, 1, 1, - 1, 0, 1, - 1, - 1, 0, - 1, 1, - 1, 0, - 1, - 1,
-                    1, 1, 0, 1, 1, 1, 0, - 1, 1, - 1, 0, 1, 1, - 1, 0, - 1,
-                    - 1, 1, 0, 1, - 1, 1, 0, - 1, - 1, - 1, 0, 1, - 1, - 1, 0, - 1,
-                    1, 1, 1, 0, 1, 1, - 1, 0, 1, - 1, 1, 0, 1, - 1, - 1, 0,
-                    - 1, 1, 1, 0, - 1, 1, - 1, 0, - 1, - 1, 1, 0, - 1, - 1, - 1, 0]);
-
-    var stdlib = (typeof window !== 'undefined') ? window : global;
-    this._asmLinked = this._asm(stdlib, stdlib, this.heap);
-
-    this.noise2D = this._asmLinked.noise2D;
-}
-
-SimplexNoise.prototype = {
-    _asm: function(stdlib, foreign, heap) {
-        'use asm';
-
-        /* fails: TypeError: asm.js type error: array view constructor takes exactly one argument
-        var p = new stdlib.Uint8Array(heap, 0, 256);
-        var perm = new stdlib.Uint8Array(heap, 256, 512);
-        var permMod12 = new stdlib.Uint8Array(heap, 256 + 512, 512);
-        var grad3 = new stdlib.Float32Array(heap, 256 + 512 + 512, 36);
-        var grad4 = new stdlib.Float32Array(heap, 256 + 512 + 512 + (36 * 4), 128);
-        */
-
-        var bytes = new stdlib.Uint8Array(heap);
-        var _perm = 256;
-        var _permMod12 = 768; // 256 + 512;
-
-        var floats = new stdlib.Float32Array(heap);
-        var _grad3 = 320; // (256 + 512 + 512) / Float32Array.BYTES_PER_ELEMENT
-        var _grad4 = 356; // 320 + 36
-
-        var sqrt = stdlib.Math.sqrt;
-        var floor = stdlib.Math.floor;
-        var imul = stdlib.Math.imul; // Chrome has this, but not Node (v0.10.21)
+    var sqrt = stdlib.Math.sqrt;
+    var floor = stdlib.Math.floor;
+    var imul = stdlib.Math.imul; // Chrome has this, but not Node (v0.10.21)
 
     function noise2D(xin, yin) {
         xin = +xin;
@@ -168,11 +121,58 @@ SimplexNoise.prototype = {
         return +(70.0 * (n0 + n1 + n2));
     };
 
-        return {
-            noise2D: noise2D
-        };
-    },
+    return {
+        noise2D: noise2D
+    };
+}
 
+
+function SimplexNoise(random) {
+    if (!random) random = Math.random;
+    this.heap = new ArrayBuffer(0x1000); //> 256 + 512 + 512 + (36 * 4) + (128 * 4));
+    this.p = new Uint8Array(this.heap, 0, 256);
+    this.perm = new Uint8Array(this.heap, 256, 512);
+    this.permMod12 = new Uint8Array(this.heap, 256 + 512, 512);
+    for (var i = 0; i < 256; i++) {
+        this.p[i] = random() * 256;
+    }
+    for (i = 0; i < 512; i++) {
+        this.perm[i] = this.p[i & 255];
+        this.permMod12[i] = this.perm[i] % 12;
+    }
+    this.grad3 = new Float32Array(this.heap, 256 + 512 + 512, 36);
+    this.grad3.set([1, 1, 0,
+                    - 1, 1, 0,
+                    1, - 1, 0,
+
+                    - 1, - 1, 0,
+                    1, 0, 1,
+                    - 1, 0, 1,
+
+                    1, 0, - 1,
+                    - 1, 0, - 1,
+                    0, 1, 1,
+
+                    0, - 1, 1,
+                    0, 1, - 1,
+                    0, - 1, - 1]);
+    this.grad4 = new Float32Array(this.heap, 256 + 512 + 512 + (36 * 4), 128);
+    this.grad4.set([0, 1, 1, 1, 0, 1, 1, - 1, 0, 1, - 1, 1, 0, 1, - 1, - 1,
+                    0, - 1, 1, 1, 0, - 1, 1, - 1, 0, - 1, - 1, 1, 0, - 1, - 1, - 1,
+                    1, 0, 1, 1, 1, 0, 1, - 1, 1, 0, - 1, 1, 1, 0, - 1, - 1,
+                    - 1, 0, 1, 1, - 1, 0, 1, - 1, - 1, 0, - 1, 1, - 1, 0, - 1, - 1,
+                    1, 1, 0, 1, 1, 1, 0, - 1, 1, - 1, 0, 1, 1, - 1, 0, - 1,
+                    - 1, 1, 0, 1, - 1, 1, 0, - 1, - 1, - 1, 0, 1, - 1, - 1, 0, - 1,
+                    1, 1, 1, 0, 1, 1, - 1, 0, 1, - 1, 1, 0, 1, - 1, - 1, 0,
+                    - 1, 1, 1, 0, - 1, 1, - 1, 0, - 1, - 1, 1, 0, - 1, - 1, - 1, 0]);
+
+    var stdlib = (typeof window !== 'undefined') ? window : global;
+    this._asmLinked = SimplexAsm(stdlib, stdlib, this.heap);
+
+    this.noise2D = this._asmLinked.noise2D;
+}
+
+SimplexNoise.prototype = {
     // 3D simplex noise
     noise3D: function (xin, yin, zin) {
         var permMod12 = this.permMod12,
