@@ -78,20 +78,22 @@ SimplexNoise.prototype = {
             perm = this.perm,
             grad3 = this.grad3;
         var n0=0, n1=0, n2=0; // Noise contributions from the three corners
+        var F2 = 0.0, G2 = 0.0, s = 0.0, x0 = 0.0, y0 = 0.0, x1 = 0.0, y1 = 0.0, x2 = 0.0, y2 = 0.0, t = 0.0, t0 = 0.0, t1 = 0.0, t2 = 0.0, X0 = 0.0, Y0 = 0.0;
+        var i = 0, j = 0, i1 = 0, j1 = 0, ii = 0, jj = 0, gi0 = 0, gi1 = 0, gi2 = 0;
         // Skew the input space to determine which simplex cell we're in
-        var F2 = 0.5 * (+Math.sqrt(3.0) - 1.0);
-        var G2 = (3.0 - +Math.sqrt(3.0)) / 6.0;
-        var s = (xin + yin) * F2; // Hairy factor for 2D
-        var i = Math.floor(xin + s);
-        var j = Math.floor(yin + s);
-        var t = (i + j) * G2;
-        var X0 = i - t; // Unskew the cell origin back to (x,y) space
-        var Y0 = j - t;
-        var x0 = xin - X0; // The x,y distances from the cell origin
-        var y0 = yin - Y0;
+        F2 = 0.5 * (+Math.sqrt(3.0) - 1.0);
+        G2 = (3.0 - +Math.sqrt(3.0)) / 6.0;
+        s = (xin + yin) * F2; // Hairy factor for 2D
+        i = Math.floor(xin + s);
+        j = Math.floor(yin + s);
+        t = (i + j) * G2;
+        X0 = i - t; // Unskew the cell origin back to (x,y) space
+        Y0 = j - t;
+        x0 = xin - X0; // The x,y distances from the cell origin
+        y0 = yin - Y0;
         // For the 2D case, the simplex shape is an equilateral triangle.
         // Determine which simplex we are in.
-        var i1, j1; // Offsets for second (middle) corner of simplex in (i,j) coords
+        // i1, j1; // Offsets for second (middle) corner of simplex in (i,j) coords
         if (x0 > y0) {
             i1 = 1;
             j1 = 0;
@@ -103,29 +105,29 @@ SimplexNoise.prototype = {
         // A step of (1,0) in (i,j) means a step of (1-c,-c) in (x,y), and
         // a step of (0,1) in (i,j) means a step of (-c,1-c) in (x,y), where
         // c = (3-sqrt(3))/6
-        var x1 = x0 - i1 + G2; // Offsets for middle corner in (x,y) unskewed coords
-        var y1 = y0 - j1 + G2;
-        var x2 = x0 - 1.0 + 2.0 * G2; // Offsets for last corner in (x,y) unskewed coords
-        var y2 = y0 - 1.0 + 2.0 * G2;
+        x1 = x0 - i1 + G2; // Offsets for middle corner in (x,y) unskewed coords
+        y1 = y0 - j1 + G2;
+        x2 = x0 - 1.0 + 2.0 * G2; // Offsets for last corner in (x,y) unskewed coords
+        y2 = y0 - 1.0 + 2.0 * G2;
         // Work out the hashed gradient indices of the three simplex corners
-        var ii = i & 255;
-        var jj = j & 255;
+        ii = i & 255;
+        jj = j & 255;
         // Calculate the contribution from the three corners
-        var t0 = 0.5 - x0 * x0 - y0 * y0;
+        t0 = 0.5 - x0 * x0 - y0 * y0;
         if (t0 >= 0.0) {
-            var gi0 = permMod12[ii + perm[jj]] * 3;
+            gi0 = permMod12[ii + perm[jj]] * 3;
             t0 = t0 * t0;
             n0 = t0 * t0 * (grad3[gi0] * x0 + grad3[gi0 + 1] * y0); // (x,y) of grad3 used for 2D gradient
         }
-        var t1 = 0.5 - x1 * x1 - y1 * y1;
+        t1 = 0.5 - x1 * x1 - y1 * y1;
         if (t1 >= 0.0) {
-            var gi1 = permMod12[ii + i1 + perm[jj + j1]] * 3;
+            gi1 = permMod12[ii + i1 + perm[jj + j1]] * 3;
             t1 = t1 * t1;
             n1 = t1 * t1 * (grad3[gi1] * x1 + grad3[gi1 + 1] * y1);
         }
-        var t2 = 0.5 - x2 * x2 - y2 * y2;
+        t2 = 0.5 - x2 * x2 - y2 * y2;
         if (t2 >= 0.0) {
-            var gi2 = permMod12[ii + 1 + perm[jj + 1]] * 3;
+            gi2 = permMod12[ii + 1 + perm[jj + 1]] * 3;
             t2 = t2 * t2;
             n2 = t2 * t2 * (grad3[gi2] * x2 + grad3[gi2 + 1] * y2);
         }
