@@ -31,13 +31,6 @@
  */
 (function () {
 
-var F2 = 0.5 * (Math.sqrt(3.0) - 1.0),
-    G2 = (3.0 - Math.sqrt(3.0)) / 6.0,
-    F3 = 1.0 / 3.0,
-    G3 = 1.0 / 6.0,
-    F4 = (Math.sqrt(5.0) - 1.0) / 4.0,
-    G4 = (5.0 - Math.sqrt(5.0)) / 20.0;
-
 
 function SimplexNoise(random) {
     if (!random) random = Math.random;
@@ -86,6 +79,8 @@ SimplexNoise.prototype = {
             grad3 = this.grad3;
         var n0=0, n1=0, n2=0; // Noise contributions from the three corners
         // Skew the input space to determine which simplex cell we're in
+        var F2 = 0.5 * (+Math.sqrt(3.0) - 1.0);
+        var G2 = (3.0 - +Math.sqrt(3.0)) / 6.0;
         var s = (xin + yin) * F2; // Hairy factor for 2D
         var i = Math.floor(xin + s);
         var j = Math.floor(yin + s);
@@ -145,10 +140,12 @@ SimplexNoise.prototype = {
             grad3 = this.grad3;
         var n0, n1, n2, n3; // Noise contributions from the four corners
         // Skew the input space to determine which simplex cell we're in
+        var F3 = 0.0; F3 = 1.0 / 3.0;
         var s = (xin + yin + zin) * F3; // Very nice and simple skew factor for 3D
         var i = Math.floor(xin + s);
         var j = Math.floor(yin + s);
         var k = Math.floor(zin + s);
+        var G3 = 0.0; G3 = 1.0 / 6.0;
         var t = (i + j + k) * G3;
         var X0 = i - t; // Unskew the cell origin back to (x,y,z) space
         var Y0 = j - t;
@@ -270,11 +267,13 @@ SimplexNoise.prototype = {
 
         var n0, n1, n2, n3, n4; // Noise contributions from the five corners
         // Skew the (x,y,z,w) space to determine which cell of 24 simplices we're in
+        var F4 = 0.0; F4 = (Math.sqrt(5.0) - 1.0) / 4.0;
         var s = (x + y + z + w) * F4; // Factor for 4D skewing
         var i = Math.floor(x + s);
         var j = Math.floor(y + s);
         var k = Math.floor(z + s);
         var l = Math.floor(w + s);
+        var G4 = 0.0; G4 = (5.0 - Math.sqrt(5.0)) / 20.0;
         var t = (i + j + k + l) * G4; // Factor for 4D unskewing
         var X0 = i - t; // Unskew the cell origin back to (x,y,z,w) space
         var Y0 = j - t;
