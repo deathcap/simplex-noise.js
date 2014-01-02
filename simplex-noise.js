@@ -34,7 +34,7 @@
 
 function SimplexNoise(random) {
     if (!random) random = Math.random;
-    this.heap = new ArrayBuffer(0x1000); // >256 + 512 + 512 + (36 * 4) + (128 * 4)
+    this.heap = new ArrayBuffer(0x1000); //> 256 + 512 + 512 + (36 * 4) + (128 * 4));
     this.p = new Uint8Array(this.heap, 0, 256);
     this.perm = new Uint8Array(this.heap, 256, 512);
     this.permMod12 = new Uint8Array(this.heap, 256 + 512, 512);
@@ -91,9 +91,10 @@ SimplexNoise.prototype = {
         var n0=0.0, n1=0.0, n2=0.0; // Noise contributions from the three corners
         var F2 = 0.0, G2 = 0.0, s = 0.0, x0 = 0.0, y0 = 0.0, x1 = 0.0, y1 = 0.0, x2 = 0.0, y2 = 0.0, t = 0.0, t0 = 0.0, t1 = 0.0, t2 = 0.0, X0 = 0.0, Y0 = 0.0;
         var i = 0, j = 0, i1 = 0, j1 = 0, ii = 0, jj = 0, gi0 = 0, gi1 = 0, gi2 = 0;
+
         // Skew the input space to determine which simplex cell we're in
-        F2 = 0.5 * (+Math.sqrt(3.0) - 1.0);
-        G2 = (3.0 - +Math.sqrt(3.0)) / 6.0;
+        F2 = 0.5 * (+sqrt(3.0) - 1.0);
+        G2 = (3.0 - +sqrt(3.0)) / 6.0;
         s = 0.0; s = (xin + yin) * F2; // Hairy factor for 2D
         i = ~~+floor(xin + s);
         j = ~~+floor(yin + s);
@@ -104,7 +105,7 @@ SimplexNoise.prototype = {
         y0 = yin - Y0;
         // For the 2D case, the simplex shape is an equilateral triangle.
         // Determine which simplex we are in.
-        // i1, j1; // Offsets for second (middle) corner of simplex in (i,j) coords
+        //i1, j1; // Offsets for second (middle) corner of simplex in (i,j) coords
         if (x0 > y0) {
             i1 = 1;
             j1 = 0;
@@ -126,19 +127,19 @@ SimplexNoise.prototype = {
         // Calculate the contribution from the three corners
         t0 = 0.5 - x0 * x0 - y0 * y0;
         if (t0 >= 0.0) {
-            gi0 = permMod12[ii + perm[jj]] * 3;
+            gi0 = permMod12[ii + perm[jj]|0] * 3;
             t0 = t0 * t0;
             n0 = t0 * t0 * (grad3[gi0] * x0 + grad3[gi0 + 1] * y0); // (x,y) of grad3 used for 2D gradient
         }
         t1 = 0.5 - x1 * x1 - y1 * y1;
         if (t1 >= 0.0) {
-            gi1 = permMod12[ii + i1 + perm[jj + j1]] * 3;
+            gi1 = permMod12[ii + i1 + perm[jj + j1]|0] * 3;
             t1 = t1 * t1;
             n1 = t1 * t1 * (grad3[gi1] * x1 + grad3[gi1 + 1] * y1);
         }
         t2 = 0.5 - x2 * x2 - y2 * y2;
         if (t2 >= 0.0) {
-            gi2 = permMod12[ii + 1 + perm[jj + 1]] * 3;
+            gi2 = permMod12[ii + 1 + perm[jj + 1]|0] * 3;
             t2 = t2 * t2;
             n2 = t2 * t2 * (grad3[gi2] * x2 + grad3[gi2 + 1] * y2);
         }
