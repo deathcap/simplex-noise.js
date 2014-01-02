@@ -88,7 +88,7 @@ SimplexNoise.prototype = {
         xin = +xin;
         yin = +yin;
 
-        var n0=0, n1=0, n2=0; // Noise contributions from the three corners
+        var n0=0.0, n1=0.0, n2=0.0; // Noise contributions from the three corners
         var F2 = 0.0, G2 = 0.0, s = 0.0, x0 = 0.0, y0 = 0.0, x1 = 0.0, y1 = 0.0, x2 = 0.0, y2 = 0.0, t = 0.0, t0 = 0.0, t1 = 0.0, t2 = 0.0, X0 = 0.0, Y0 = 0.0;
         var i = 0, j = 0, i1 = 0, j1 = 0, ii = 0, jj = 0, gi0 = 0, gi1 = 0, gi2 = 0;
         // Skew the input space to determine which simplex cell we're in
@@ -162,7 +162,7 @@ SimplexNoise.prototype = {
         var permMod12 = this.permMod12,
             perm = this.perm,
             grad3 = this.grad3;
-        var n0, n1, n2, n3; // Noise contributions from the four corners
+        var n0 = 0.0, n1 = 0.0, n2 = 0.0, n3 = 0.0; // Noise contributions from the four corners
         // Skew the input space to determine which simplex cell we're in
         var F3 = 0.0; F3 = 1.0 / 3.0;
         var s = (xin + yin + zin) * F3; // Very nice and simple skew factor for 3D
@@ -289,7 +289,7 @@ SimplexNoise.prototype = {
             perm = this.perm,
             grad4 = this.grad4;
 
-        var n0, n1, n2, n3, n4; // Noise contributions from the five corners
+        var n0 = 0.0, n1 = 0.0, n2 = 0.0, n3 = 0.0, n4 = 0.0; // Noise contributions from the five corners
         // Skew the (x,y,z,w) space to determine which cell of 24 simplices we're in
         var F4 = 0.0; F4 = (Math.sqrt(5.0) - 1.0) / 4.0;
         var s = (x + y + z + w) * F4; // Factor for 4D skewing
