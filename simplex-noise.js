@@ -144,21 +144,22 @@ SimplexNoise.prototype = {
         // Calculate the contribution from the three corners
         t0 = 0.5 - x0 * x0 - y0 * y0;
         if (t0 >= 0.0) {
-            //gi0 =  bytes[(_permMod12 + ii + bytes[(_perm + jj)|0])|0]|0;
-            //gi0 = (bytes[(_permMod12 + ii + bytes[(_perm + jj)|0])|0]|0) * 3;
-            gi0 = (bytes[(_permMod12 + ii + bytes[(_perm + jj)|0])|0]|0) * 3;
+            //gi0 =                           bytes[(_perm + jj)|0]|0;
+            //gi0 =  bytes[(_permMod12 + ii + bytes[(_perm + jj)|0]|0)|0]|0;
+            //gi0 = (bytes[(_permMod12 + ii + bytes[(_perm + jj)|0]|0)|0]|0) * 3;
+            gi0 = (bytes[(_permMod12 + ii + bytes[(_perm + jj)|0]|0)|0]|0) * 3;
             t0 = t0 * t0;
             n0 = t0 * t0 * (+floats[(_grad3 + gi0) << 2 >> 2] * x0 + +floats[(_grad3 + gi0 + 1) << 2 >> 2] * y0); // (x,y) of grad3 used for 2D gradient
         }
         t1 = 0.5 - x1 * x1 - y1 * y1;
         if (t1 >= 0.0) {
-            gi1 = (bytes[(_permMod12 + ii + i1 + bytes[(_perm + jj + j1)|0])|0]|0) * 3;
+            gi1 = (bytes[(_permMod12 + ii + i1 + bytes[(_perm + jj + j1)|0]|0)|0]|0) * 3;
             t1 = t1 * t1;
             n1 = t1 * t1 * (+floats[(_grad3 + gi1) << 2 >> 2] * x1 + +floats[(_grad3 + gi1 + 1) << 2 >> 2] * y1);
         }
         t2 = 0.5 - x2 * x2 - y2 * y2;
         if (t2 >= 0.0) {
-            gi2 = bytes[(_permMod12 + ii + 1 + bytes[(_perm + jj + 1)|0])|0] * 3;
+            gi2 = bytes[(_permMod12 + ii + 1 + bytes[(_perm + jj + 1)|0]|0)|0] * 3;
             t2 = t2 * t2;
             n2 = t2 * t2 * (+floats[(_grad3 + gi2) << 2 >> 2] * x2 + +floats[(_grad3 + gi2 + 1) << 2 >> 2] * y2);
         }
