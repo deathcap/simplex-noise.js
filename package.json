@@ -6,9 +6,6 @@
   "author": "Jonas Wagner <jonas@29a.ch> (http://29a.ch/)",
   "main": "./simplex-noise",
   "devDependencies": {
-    "buster": "~0.7.8",
-    "benchmark": "~1.0.0",
-    "microtime": "~0.3.1",
     "tape": "~2.3.2",
     "alea": "0.0.9"
   },
